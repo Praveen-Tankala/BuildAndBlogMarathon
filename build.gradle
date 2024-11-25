@@ -1,0 +1,50 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.5.6'
+    id 'io.spring.dependency-management' version '1.1.6'
+}
+
+
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+
+//    runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'mysql:mysql-connector-java'
+
+    implementation platform('com.google.cloud:libraries-bom:26.45.0')
+
+    implementation 'com.google.cloud:google-cloud-bigquery'
+
+    implementation 'com.google.cloud:google-cloud-secretmanager:2.5.0'
+
+    implementation 'com.google.cloud:google-cloud-secretmanager:2.5.0'
+    implementation group: 'com.google.cloud', name: 'google-cloud-storage', version: '2.16.0'
+    implementation group: 'com.google.cloud', name: 'spring-cloud-gcp-starter-storage', version: '2.0.0'
+    implementation 'com.googlecode.json-simple:json-simple:1.1.1'
+    implementation 'org.apache.pdfbox:pdfbox:2.0.24'
+    implementation 'com.opencsv:opencsv:4.1'
+
+    implementation group: 'io.springfox', name: 'springfox-swagger2', version: '2.7.0'
+    implementation group: 'io.springfox', name: 'springfox-swagger-ui', version: '2.7.0'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
