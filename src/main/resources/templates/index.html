@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Document Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .viewer {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+<h1>Document Viewer</h1>
+<div>
+    <h3>Uploaded Files:</h3>
+    <ul>
+        <li th:each="file : ${files}">
+            <button data-url="[[${file.url}]]" onclick="loadFile(this)">View [[${file.name}]]</button>
+        </li>
+    </ul>
+</div>
+<iframe id="viewer" class="viewer" src="" frameborder="0"></iframe>
+
+<script>
+    function loadFile(button) {
+        const fileUrl = button.getAttribute('data-url');
+        document.getElementById('viewer').src = fileUrl;
+    }
+</script>
+</body>
+</html>

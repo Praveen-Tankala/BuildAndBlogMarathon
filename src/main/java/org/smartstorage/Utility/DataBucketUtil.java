@@ -2,14 +2,12 @@ package org.smartstorage.Utility;
 
 
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.storage.Blob;
-import com.google.cloud.storage.Bucket;
-import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
+import com.google.cloud.storage.*;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smartstorage.Entity.MetaData;
+import org.smartstorage.event.EventHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -19,9 +17,11 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
@@ -52,10 +52,14 @@ public class DataBucketUtil {
         return bucket;
     }
 
-    public Long uploadFileForBoardAssets(String parentFolder, String uniqueIdentifier,MultipartFile files,String filePath) throws IOException {
+    public Long uploadFileForBoardAssets(String parentFolder, String uniqueIdentifier,MultipartFile files,String filePath,MetaData metaData) throws IOException {
         Long count = 0L;
         try{
-            Bucket bucket = getTheGCPBucket();
+            InputStream inputStream = new ClassPathResource(gcpConfigFile).getInputStream();
+            StorageOptions options = StorageOptions.newBuilder().setProjectId(gcpProjectId)
+                    .setCredentials(GoogleCredentials.fromStream(inputStream)).build();
+            Storage storage = options.getService();
+            Bucket bucket = storage.get(gcpBucketId,Storage.BucketGetOption.fields());
             if (!StringUtils.isEmpty(parentFolder)) {
                 Blob parentFolderBlob = bucket.get(parentFolder + "/");
                 if (parentFolderBlob == null) {
@@ -65,16 +69,25 @@ public class DataBucketUtil {
                 String fileName = files.getOriginalFilename();
                 if (!StringUtils.isEmpty(fileName)) {
                     byte[] bytes = files.getBytes();
-                    Blob fileBlob = bucket.create(uniqueIdentifier + fileName, bytes, "text/pdf");
+                    Blob fileBlob = bucket.create(fileName, bytes, "application/octet-stream");
                     log.info("file uploaded "+fileBlob.getBucket()+" "+fileBlob.getName());
                 }
             }
 
+            URL signedUrl = storage.signUrl(
+                    BlobInfo.newBuilder(gcpBucketId,parentFolder + "/" + uniqueIdentifier +  files.getOriginalFilename()).build(),
+                    15, // URL expiration time
+                    TimeUnit.MINUTES,
+                    Storage.SignUrlOption.withV4Signature() // Use V4 signing
+            );
+
             if(filePath!=null) {
                 Path path = Paths.get(filePath);
-                count = Files.lines(path).count();
+                metaData.setSize(Files.size(path));
                 Files.delete(path);
             }
+            metaData.setLink(String.valueOf(signedUrl));
+            applicationEventPublisher.publishEvent(new EventHandler(this, metaData));
 
         }
         catch (Exception e){

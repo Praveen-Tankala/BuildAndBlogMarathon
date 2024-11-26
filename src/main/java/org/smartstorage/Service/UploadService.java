@@ -7,5 +7,6 @@ public interface UploadService {
 
     ResponseModel uploadDataToCloud(MultipartFile multipartFile, String userId);
 
+    ResponseModel postDataToCloud(MultipartFile file, String uuid);
 
 }

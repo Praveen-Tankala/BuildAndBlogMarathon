@@ -43,6 +43,10 @@ public class UploadServiceImpl implements UploadService{
     PromptService promptService;
 
     @Autowired
+    MultiTurnMultimodal multiTurnMultimodal;
+
+
+    @Autowired
     DataBucketUtil dataBucketUtil;
 
 
@@ -53,7 +57,7 @@ public class UploadServiceImpl implements UploadService{
     public ResponseModel uploadDataToCloud(MultipartFile file, String userId) {
         try {
             // Convert MultipartFile to File
-            String fileName = "C:/Users/tanka/Downloads/SmartStorage/Downloads"+"/"+ file.getOriginalFilename();
+            String fileName = System.getProperty("user.home") +"/"+ file.getOriginalFilename();
             File convFile = new File(fileName);
             if (!convFile.createNewFile()) {
                 throw new IOException("Failed to create file: " + convFile.getAbsolutePath());
@@ -105,10 +109,9 @@ public class UploadServiceImpl implements UploadService{
                     .setDescription(extractedText)
                     .setUploadDate(String.valueOf(System.currentTimeMillis()))
                     .setStatus(1);
-            applicationEventPublisher.publishEvent(new EventHandler(this, metaData));
 
             MultipartFile result = getMultipartFile(fileName, file.getOriginalFilename());
-            dataBucketUtil.uploadFileForBoardAssets(userId , String.valueOf(System.currentTimeMillis()), result,fileName);
+            dataBucketUtil.uploadFileForBoardAssets(userId , String.valueOf(System.currentTimeMillis()), result,fileName, metaData);
 
             return new ResponseModel(200, "Success!", extractedText);
 
@@ -132,6 +135,37 @@ public class UploadServiceImpl implements UploadService{
                 originalFileName, contentType, content);
         return result;
     }
+
+    public ResponseModel postDataToCloud(MultipartFile file, String uuid) {
+        String summaryForMedia = "";
+        try {
+            // Convert MultipartFile to File
+            String fileName = System.getProperty("user.home") + "/" + file.getOriginalFilename();
+            File convFile = new File(fileName);
+            if (!convFile.createNewFile()) {
+                throw new IOException("Failed to create file: " + convFile.getAbsolutePath());
+            }
+            file.transferTo(convFile);
+
+            summaryForMedia = multiTurnMultimodal.getSummaryForMedia(fileName);
+            MetaData metaData = new MetaData()
+                    .setName(file.getOriginalFilename())
+                    .setDescription(summaryForMedia)
+                    .setUploadDate(String.valueOf(System.currentTimeMillis()))
+                    .setLink("")
+                    .setStatus(1);
+
+            MultipartFile result = getMultipartFile(fileName, file.getOriginalFilename());
+            dataBucketUtil.uploadFileForBoardAssets(uuid , String.valueOf(System.currentTimeMillis()), result,fileName, metaData);
+
+            return new ResponseModel(200, "Success!", summaryForMedia);
+
+        }catch (Exception e){
+            log.error(e.getLocalizedMessage());
+        }
+        return new ResponseModel(204, "No Content!", summaryForMedia);
+    }
+
 
 
 
